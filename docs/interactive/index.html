@@ -1,9 +1,200 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Pandas-EDA — Tour</title>
-<style>body{margin:0;font-family:-apple-system,sans-serif;background:#0d0d12;color:#e6e6e6}
-header{padding:18px 24px;border-bottom:1px solid #ffffff14}main{display:grid;grid-template-columns:1fr 1fr;min-height:60vh}
-.lesson,.practice{padding:24px}.lesson{border-right:1px solid #ffffff14}h1,h2{color:#0891B2}
-textarea{width:100%;min-height:240px;background:#0000005c;color:#e6e6e6;border:1px solid #ffffff1a;border-radius:8px;padding:12px;font-family:ui-monospace,monospace}</style></head>
-<body><header><h1>Pandas-EDA — Interactive Tour (TODO)</h1><p>4-lesson split-panel tour scaffold + Check Your Understanding quiz. See docs/LESSON_PLAN.md.</p></header>
-<main><section class="lesson"><h2>Lesson 1 — TODO</h2><p>Concept + diagram on the left.</p></section>
-<section class="practice"><h3>Practice (TODO)</h3><textarea>// TODO starter code</textarea></section></main></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pandas-EDA — Interactive Tour</title>
+<style>
+  :root { --bg:#04131a; --accent:#0891B2; --panel:#0000002e; --text:#e6e6e6; --muted:#9aa0a6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:18px 24px; border-bottom:1px solid #ffffff14; }
+  header h1 { margin:0; font-size:18px; } header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  .badge { display:inline-block; background:var(--accent); color:#000; font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; margin-left:8px; }
+  .pills { display:flex; gap:8px; padding:12px 24px; flex-wrap:wrap; }
+  .pill { padding:6px 12px; border-radius:999px; font-size:12px; cursor:pointer; background:var(--panel); border:1px solid #ffffff1a; color:var(--muted); }
+  .pill.active { background:var(--accent); color:#000; font-weight:600; border-color:var(--accent); }
+  main { display:grid; grid-template-columns:1fr 1fr; min-height:64vh; }
+  .lesson, .practice { padding:24px; } .lesson { border-right:1px solid #ffffff14; overflow:auto; }
+  .lesson h2 { color:var(--accent); margin-top:0; } .lesson ul { padding-left:18px; } .lesson li { margin:5px 0; }
+  .lesson code, .code { background:#ffffff12; padding:1px 5px; border-radius:4px; font-size:12px; font-family:ui-monospace,Menlo,monospace; }
+  .practice h3 { margin-top:0; color:var(--muted); text-transform:uppercase; font-size:12px; letter-spacing:1px; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); border-radius:8px; padding:7px 11px; font-weight:600; cursor:pointer; font-size:12px; margin:2px; }
+  nav { display:flex; justify-content:space-between; padding:16px 24px; border-top:1px solid #ffffff14; }
+  table.df { width:100%; border-collapse:collapse; font-size:11px; }
+  table.df th, table.df td { border:1px solid #ffffff12; padding:4px 6px; text-align:left; }
+  table.df th { color:var(--muted); text-transform:uppercase; font-size:9px; letter-spacing:1px; }
+  .null { color:#f87171; font-style:italic; } .bad { background:#7f1d1d55; } .dupe { background:#78350f55; }
+  .pycode { background:#00000066; border:1px solid var(--accent); border-radius:8px; padding:8px 10px; font-size:12px; color:#7dd3fc; font-family:ui-monospace,Menlo,monospace; margin:8px 0; white-space:pre-wrap; }
+  .score { font-size:13px; margin:8px 0; } .score b { color:var(--accent); }
+  .bar { height:8px; background:#ffffff14; border-radius:6px; overflow:hidden; margin-top:4px; }
+  .bar > i { display:block; height:100%; background:#34d399; }
+  .q { margin:12px 0; padding:12px; background:#ffffff08; border-radius:8px; } .q p{margin:0 0 8px;font-weight:600}
+  .q label { display:block; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:13px; } .q label:hover{background:#ffffff0f}
+  .q .fb { margin-top:8px; font-size:13px; display:none; } .ok{color:#34d399}.no{color:#f87171}
+  .cyu { border-left:3px solid var(--accent); background:#ffffff0a; padding:10px 12px; border-radius:4px; margin-top:6px; font-size:13px; }
+  table.cheat{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+  table.cheat td,table.cheat th{border:1px solid #ffffff14;padding:6px 8px;text-align:left}table.cheat th{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pandas-EDA<span class="badge">Chain Q</span></h1>
+  <p>Interactive tour · Left: the lesson. Right: a live dirty dataset — clean it step by step, watch the quality score climb.</p>
+</header>
+<div class="pills" id="pills"></div>
+<main>
+  <section class="lesson" id="lesson"></section>
+  <section class="practice"><h3 id="pracTitle">Dirty dataset</h3><div id="sim"></div></section>
+</main>
+<nav>
+  <button class="ghost" onclick="go(-1)">← Previous</button>
+  <span id="counter" style="color:var(--muted);font-size:13px"></span>
+  <button class="ghost" onclick="go(1)">Next →</button>
+</nav>
+<script>
+// deliberately messy customer records
+function freshData(){ return [
+  {id:1, city:"New York", age:34, spend:"120"},
+  {id:2, city:"new york", age:null, spend:"200"},
+  {id:3, city:" NY ", age:29, spend:"abc"},
+  {id:4, city:"Boston", age:41, spend:"150"},
+  {id:4, city:"Boston", age:41, spend:"150"},   // duplicate
+  {id:5, city:"boston", age:38, spend:"9999"},  // outlier spend
+  {id:6, city:"Chicago", age:null, spend:"180"},
+]; }
+let DATA=freshData();
+const done={dedupe:false,types:false,nulls:false,cats:false,outliers:false};
+
+function reset(){ DATA=freshData(); Object.keys(done).forEach(k=>done[k]=false); renderSim(); }
+function dedupe(){ const seen=new Set(); DATA=DATA.filter(r=>{ const k=r.id+'|'+r.city+'|'+r.spend; if(seen.has(k))return false; seen.add(k); return true; }); done.dedupe=true; renderSim(); }
+function fixTypes(){ DATA.forEach(r=>{ const n=Number(r.spend); r.spend = Number.isFinite(n)? n : NaN; }); done.types=true; renderSim(); }
+function median(xs){ const s=xs.slice().sort((a,b)=>a-b); return s[Math.floor(s.length/2)]; }
+function fixNulls(){ const ageMed=median(DATA.map(r=>r.age).filter(a=>a!=null));
+  const spendMed=median(DATA.map(r=>r.spend).filter(v=>Number.isFinite(v)));
+  DATA.forEach(r=>{ if(r.age==null) r.age=ageMed; if(Number.isNaN(r.spend)&&Number.isFinite(spendMed)) r.spend=spendMed; });
+  done.nulls=true; renderSim(); }
+function fixCats(){ DATA.forEach(r=>{ let c=(''+r.city).trim().toLowerCase(); if(c==='ny'||c==='new york') c='New York'; else c=c.charAt(0).toUpperCase()+c.slice(1); r.city=c; }); done.cats=true; renderSim(); }
+function fixOutliers(){ if(done.types){ const vals=DATA.map(r=>r.spend).filter(v=>Number.isFinite(v)).sort((a,b)=>a-b);
+    const q1=vals[Math.floor(vals.length*0.25)], q3=vals[Math.floor(vals.length*0.75)], iqr=q3-q1, cap=q3+1.5*iqr;
+    DATA.forEach(r=>{ if(Number.isFinite(r.spend)&&r.spend>cap) r.spend=Math.round(cap); }); done.outliers=true; } renderSim(); }
+
+function issues(){
+  let n=0;
+  const seen=new Set(); DATA.forEach(r=>{ const k=r.id+'|'+r.city+'|'+r.spend; if(seen.has(k))n++; seen.add(k); });   // dupes
+  DATA.forEach(r=>{ if(typeof r.spend==='string'&&!Number.isFinite(Number(r.spend)))n++; if(Number.isNaN(r.spend))n++; });   // bad types
+  DATA.forEach(r=>{ if(r.age==null)n++; });   // nulls
+  const cities=new Set(DATA.map(r=>(''+r.city)));
+  const norm=new Set(DATA.map(r=>(''+r.city).trim().toLowerCase().replace('ny','new york'))); if(cities.size>norm.size)n+=(cities.size-norm.size);   // inconsistent
+  DATA.forEach(r=>{ if(Number.isFinite(r.spend)&&r.spend>1000)n++; });   // outliers
+  return n;
+}
+const START_ISSUES=7;
+
+function renderSim(){
+  const cell=(r,k)=>{ let v=r[k];
+    if(v==null) return '<td class="null">NaN</td>';
+    if(k==='spend'&&typeof v==='string'&&!Number.isFinite(Number(v))) return `<td class="bad">${v}</td>`;
+    if(k==='spend'&&Number.isNaN(v)) return '<td class="null">NaN</td>';
+    if(k==='spend'&&Number.isFinite(v)&&v>1000) return `<td class="bad">${v}</td>`;
+    return `<td>${v}</td>`; };
+  const iss=issues(); const pct=Math.round(100*(1-iss/START_ISSUES));
+  document.getElementById('sim').innerHTML=`
+    <div class="score">Data quality: <b>${pct}%</b> · ${iss} issue(s) remaining<div class="bar"><i style="width:${Math.max(0,pct)}%"></i></div></div>
+    <div style="margin:6px 0">
+      <button class="ghost" onclick="dedupe()" ${done.dedupe?'disabled':''}>drop_duplicates()</button>
+      <button class="ghost" onclick="fixTypes()" ${done.types?'disabled':''}>to_numeric(coerce)</button>
+      <button class="ghost" onclick="fixNulls()" ${done.nulls?'disabled':''}>fillna(median)</button>
+      <button class="ghost" onclick="fixCats()" ${done.cats?'disabled':''}>standardize city</button>
+      <button class="ghost" onclick="fixOutliers()" ${done.outliers?'disabled':''} title="${done.types?'':'coerce types first'}">cap outliers (IQR)</button>
+      <button class="ghost" onclick="reset()">↺ reset</button>
+    </div>
+    <table class="df"><tr><th>id</th><th>city</th><th>age</th><th>spend</th></tr>
+      ${DATA.map(r=>`<tr>${cell(r,'id')}${cell(r,'city')}${cell(r,'age')}${cell(r,'spend')}</tr>`).join('')}</table>
+    ${iss===0?'<p class="ok" style="margin-top:8px">✓ Clean! Now EDA is trustworthy: <span class="code">df.groupby(\'city\').spend.mean()</span></p>':'<p style="font-size:12px;color:var(--muted);margin-top:8px">Red = bad value · italic NaN = missing · apply the fixes above.</p>'}`;
+}
+
+const LESSONS=[
+ { short:"Inspect", title:"Inspect before you touch",
+   body:`<p>First look, then act. The pandas triage:</p>
+   <div class="pycode">df.info()          # dtypes + non-null counts
+df.describe()      # numeric summary (spot outliers)
+df.isna().sum()    # nulls per column
+df.duplicated().sum()</div>
+   <p>The dataset on the right has all four problems: duplicates, a string that won't parse, missing ages, and inconsistent city spellings + an outlier.</p>` },
+ { short:"Duplicates", title:"Duplicates",
+   body:`<p>Duplicates inflate every count and average. Drop them on the <b>real key</b>, not blindly:</p>
+   <div class="pycode">df = df.drop_duplicates(subset=["id","city","spend"])</div>
+   <p class="cyu">Deduping on the whole row can miss logical dupes (same customer, tiny text difference) or wrongly keep true dupes. Choose the key deliberately.</p>
+   <p style="color:var(--muted)">→ Click <b>drop_duplicates()</b>.</p>` },
+ { short:"Types", title:"Fix dtypes",
+   body:`<p><code>spend</code> is text ("120", and a junk "abc"). Coerce, turning junk into <code>NaN</code>:</p>
+   <div class="pycode">df["spend"] = pd.to_numeric(df["spend"], errors="coerce")</div>
+   <p class="cyu"><b>errors="coerce"</b> is powerful and dangerous: it silently makes bad values <code>NaN</code>. Always compare <code>isna().sum()</code> before/after so you know how many it ate.</p>
+   <p style="color:var(--muted)">→ Click <b>to_numeric(coerce)</b>.</p>` },
+ { short:"Missing", title:"Missing data — drop vs impute",
+   body:`<ul><li><b>Drop</b> when the row is unusable or nulls are rare + random: <code>df.dropna(subset=["age"])</code>.</li>
+   <li><b>Impute</b> to keep rows: <code>df["age"].fillna(df["age"].median())</code>.</li></ul>
+   <p class="cyu"><b>median</b> beats <b>mean</b> when the column is skewed or has outliers. Never <code>fillna(0)</code> on a measure where 0 is meaningful.</p>
+   <p style="color:var(--muted)">→ Click <b>fillna(median)</b>.</p>` },
+ { short:"Categories", title:"Standardize categories",
+   body:`<p><code>New York</code>, <code>new york</code>, <code> NY </code> are one city as three strings — group-bys will split them.</p>
+   <div class="pycode">df["city"] = (df["city"].str.strip().str.lower()
+              .replace({"ny":"new york"}).str.title())</div>
+   <p style="color:var(--muted)">→ Click <b>standardize city</b>, then note how many distinct cities remain.</p>` },
+ { short:"Outliers", title:"Outliers — the IQR rule",
+   body:`<p>A <code>spend</code> of 9999 will wreck a mean. Flag with the <b>IQR rule</b>:</p>
+   <div class="pycode">q1,q3 = df.spend.quantile([.25,.75]); iqr=q3-q1
+cap = q3 + 1.5*iqr
+df["spend"] = df.spend.clip(upper=cap)   # winsorize (or drop)</div>
+   <p class="cyu">Cap (winsorize) to keep the row's other data; drop only if the point is a genuine error. Removing real extremes can hide the signal.</p>
+   <p style="color:var(--muted)">→ Coerce types first, then click <b>cap outliers</b>.</p>` },
+ { short:"Cheat sheet + quiz", title:"Key objectives & cheat sheet",
+   body:`<p><b>Keep-forever summary</b> (full in <code>docs/CHEATSHEET.md</code>):</p>
+   <table class="cheat"><tr><th>Step</th><th>pandas</th></tr>
+   <tr><td>Inspect</td><td>info / describe / isna().sum / duplicated</td></tr>
+   <tr><td>Dedupe</td><td>drop_duplicates(subset=…)</td></tr>
+   <tr><td>Types</td><td>to_numeric(errors="coerce")</td></tr>
+   <tr><td>Nulls</td><td>dropna / fillna(median)</td></tr>
+   <tr><td>Categories</td><td>str.strip().str.lower().replace()</td></tr>
+   <tr><td>Outliers</td><td>IQR: q3+1.5·IQR, clip/drop</td></tr></table>
+   <h3 style="color:var(--accent);margin:16px 0 4px">Quiz — Check Your Understanding</h3>
+   <div id="quiz"></div>` }
+];
+
+const QUIZ=[
+ { q:"pd.to_numeric(x, errors='coerce') turns unparseable values into…", a:["0","NaN","an error that stops execution"], correct:1,
+   why:"'coerce' silently converts junk to NaN — check isna().sum() before/after so you know how much it ate." },
+ { q:"A skewed column with outliers is best filled with…", a:["mean","median","zero"], correct:1,
+   why:"The median is robust to skew/outliers; the mean gets dragged by extremes." },
+ { q:"'New York', 'new york', ' NY ' in a city column will…", a:["Group together automatically","Split into 3 groups in a group-by","Raise an error"], correct:1,
+   why:"They're distinct strings until you standardize (strip/lower/replace) — otherwise group-bys triple-count." },
+ { q:"The IQR outlier fence is…", a:["mean ± 2·std","Q3 + 1.5·IQR (and Q1 − 1.5·IQR)","max value"], correct:1,
+   why:"The IQR rule flags points beyond Q1−1.5·IQR or Q3+1.5·IQR — robust and distribution-agnostic." },
+];
+function renderQuiz(){ const el=document.getElementById('quiz'); if(!el)return;
+  el.innerHTML=QUIZ.map((it,qi)=>`<div class="q"><p>${qi+1}. ${it.q}</p>
+    ${it.a.map((o,oi)=>`<label><input type="radio" name="q${qi}" value="${oi}" onchange="checkQ(${qi})"> ${o}</label>`).join('')}
+    <div class="fb" id="fb${qi}"></div></div>`).join('')+`<p id="score" style="font-weight:600"></p>`; }
+let answered={};
+function checkQ(qi){ const s=document.querySelector(`input[name=q${qi}]:checked`); if(!s)return;
+  const it=QUIZ[qi],ok=+s.value===it.correct,fb=document.getElementById('fb'+qi); fb.style.display='block';
+  fb.innerHTML=(ok?'<span class="ok">✓ Correct.</span> ':'<span class="no">✗ Not quite.</span> ')+`<div class="cyu"><b>Check your understanding:</b> ${it.why}</div>`;
+  answered[qi]=ok; document.getElementById('score').textContent='Score: '+Object.values(answered).filter(Boolean).length+' / '+QUIZ.length; }
+
+let i=0;
+function render(){ const l=LESSONS[i];
+  document.getElementById('lesson').innerHTML='<h2>'+l.title+'</h2>'+l.body;
+  document.getElementById('counter').textContent=(i+1)+' / '+LESSONS.length;
+  document.querySelectorAll('.pill').forEach((p,idx)=>p.classList.toggle('active',idx===i));
+  const pt=document.getElementById('pracTitle');
+  if(i===6){ pt.textContent='Quiz'; document.getElementById('sim').innerHTML='<p style="color:var(--muted);font-size:13px">Answer on the left — each choice reveals a Check-Your-Understanding note.</p>'; renderQuiz(); }
+  else { pt.textContent='Dirty dataset'; renderSim(); }
+}
+function go(d){ i=Math.max(0,Math.min(LESSONS.length-1,i+d)); render(); }
+const pills=document.getElementById('pills');
+LESSONS.forEach((l,idx)=>{ const b=document.createElement('div'); b.className='pill'; b.textContent=(idx+1)+'. '+l.short; b.onclick=()=>{i=idx;render();}; pills.appendChild(b); });
+render();
+</script>
+</body>
+</html>
